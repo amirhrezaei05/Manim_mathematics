@@ -1,17 +1,51 @@
+
 $ErrorActionPreference = "Stop"
 
-Write-Host "=== Manim Mathematical Studio setup ===" -ForegroundColor Cyan
+# Always work from the project root
+$ProjectRoot = Split-Path -Parent $PSScriptRoot
+Set-Location $ProjectRoot
 
+$Python = ".\.venv\Scripts\python.exe"
+
+Write-Host "=== Manim Mathematical Studio Setup ===" -ForegroundColor Cyan
+
+# Verify Python 3.12
 if (-not (Get-Command py -ErrorAction SilentlyContinue)) {
-    throw "Python Launcher 'py' not found. Install Python 3.12 (64-bit) and enable the launcher."
+    throw "Python Launcher not found."
 }
 
-py -3.12 -m venv .venv
-& .\.venv\Scripts\python.exe -m pip install --upgrade pip
-& .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+py -3.12 --version
+if ($LASTEXITCODE -ne 0) {
+    throw "Python 3.12 is not installed."
+}
 
+# Create environment if needed
+if (-not (Test-Path $Python)) {
+    py -3.12 -m venv .venv
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to create virtual environment."
+    }
+}
+
+# Install dependencies
+& $Python -m pip install --upgrade pip
+if ($LASTEXITCODE -ne 0) {
+    throw "Pip upgrade failed."
+}
+
+& $Python -m pip install -r requirements.txt
+if ($LASTEXITCODE -ne 0) {
+    throw "Dependency installation failed."
+}
+
+# Verify Manim
 Write-Host "`nChecking Manim installation..." -ForegroundColor Cyan
-& .\.venv\Scripts\manim.exe checkhealth
 
-Write-Host "`nSetup complete. Activate with: .\.venv\Scripts\Activate.ps1" -ForegroundColor Green
-Write-Host "Then render: .\scripts\render.ps1 derivative"
+& $Python -m manim checkhealth
+if ($LASTEXITCODE -ne 0) {
+    throw "Manim health check failed."
+}
+
+Write-Host "`nSetup completed successfully!" -ForegroundColor Green
+Write-Host "Activate: .\.venv\Scripts\Activate.ps1"
+Write-Host "Render: .\scripts\render.ps1 derivative"
